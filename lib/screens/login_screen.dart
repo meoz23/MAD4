@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
-import 'home_screen.dart';
-import 'register_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'message_boards_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,32 +10,44 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final AuthService _auth = AuthService();
-  final _email = TextEditingController();
-  final _password = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
-  String? _error;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  @override
-  void dispose() {
-    _email.dispose();
-    _password.dispose();
-    super.dispose();
-  }
+  bool _isLoading = false;
 
   Future<void> _login() async {
-    if (_formKey.currentState!.validate()) {
-      final message = await _auth.login(
-        email: _email.text.trim(),
-        password: _password.text,
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await _auth.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
       );
-      if (message == null) {
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (_) => const HomeScreen()));
-      } else {
-        setState(() => _error = message);
+
+      if (!mounted) return;
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MessageBoardsScreen()),
+      );
+    } on FirebaseAuthException catch (e) {
+      String message = 'An error occurred. Please try again.';
+      if (e.code == 'user-not-found') {
+        message = 'No user found for that email.';
+      } else if (e.code == 'wrong-password') {
+        message = 'Wrong password provided.';
       }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -45,42 +56,38 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Login')),
       body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _email,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator: (val) => val!.isEmpty ? 'Enter email' : null,
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(
+                labelText: 'Email',
               ),
-              TextFormField(
-                controller: _password,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                validator: (val) =>
-                    val!.length < 6 ? 'Minimum 6 characters' : null,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Password',
               ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _login,
-                child: const Text('Login'),
-              ),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(_error!, style: const TextStyle(color: Colors.red)),
-                ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pushReplacement(context,
-                      MaterialPageRoute(builder: (_) => const RegisterScreen()));
-                },
-                child: const Text('Don’t have an account? Register'),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 24),
+            _isLoading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: _login,
+                    child: const Text('Login'),
+                  ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () {
+              },
+              child: const Text('Don\'t have an account? Register'),
+            )
+          ],
         ),
       ),
     );
