@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 class ChatScreen extends StatefulWidget {
   final String boardName;
+
   const ChatScreen({super.key, required this.boardName});
 
   @override
@@ -11,77 +12,95 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController _controller = TextEditingController();
-  final user = FirebaseAuth.instance.currentUser!;
+  final TextEditingController _messageController = TextEditingController();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  void _sendMessage() async {
-    if (_controller.text.trim().isEmpty) return;
-    await FirebaseFirestore.instance
+  Future<void> _sendMessage() async {
+    final user = _auth.currentUser;
+    if (user == null || _messageController.text.trim().isEmpty) return;
+
+    final userData =
+        await _firestore.collection('users').doc(user.uid).get();
+
+    await _firestore
         .collection('boards')
         .doc(widget.boardName)
         .collection('messages')
         .add({
-      'text': _controller.text.trim(),
-      'sender': user.email,
-      'timestamp': FieldValue.serverTimestamp(),
+      'text': _messageController.text.trim(),
+      'createdAt': Timestamp.now(),
+      'userId': user.uid,
+      'username': userData['firstName'] ?? 'Anonymous',
     });
-    _controller.clear();
+
+    _messageController.clear();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.boardName)),
+      appBar: AppBar(
+        title: Text(widget.boardName),
+      ),
       body: Column(
         children: [
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
+              stream: _firestore
                   .collection('boards')
                   .doc(widget.boardName)
                   .collection('messages')
-                  .orderBy('timestamp', descending: true)
+                  .orderBy('createdAt', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
+
                 final messages = snapshot.data!.docs;
+
                 return ListView.builder(
                   reverse: true,
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final msg = messages[index];
                     return ListTile(
-                      title: Text(msg['text']),
-                      subtitle: Text('${msg['sender']} • ${msg['timestamp']?.toDate().toLocal()}'),
+                      title: Text(msg['username'] ?? 'Unknown'),
+                      subtitle: Text(msg['text']),
+                      trailing: Text(
+                        (msg['createdAt'] as Timestamp)
+                            .toDate()
+                            .toLocal()
+                            .toString()
+                            .substring(0, 16),
+                        style: const TextStyle(fontSize: 12),
+                      ),
                     );
                   },
                 );
               },
             ),
           ),
+          const Divider(height: 1),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      hintText: 'Enter your message...',
-                      border: OutlineInputBorder(),
-                    ),
+                    controller: _messageController,
+                    decoration:
+                        const InputDecoration(hintText: 'Type your message...'),
                   ),
                 ),
-                const SizedBox(width: 8),
                 IconButton(
-                  onPressed: _sendMessage,
                   icon: const Icon(Icons.send),
-                ),
+                  onPressed: _sendMessage,
+                )
               ],
             ),
-          ),
+          )
         ],
       ),
     );
