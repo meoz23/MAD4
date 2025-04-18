@@ -15,4 +15,17 @@ class AuthService {
       return null;
     }
   }
+
+  Future<User?> register({required String email, required String password}) async {
+    try {
+      UserCredential result = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return result.user;
+    } catch (e) {
+      print("Registration error: $e");
+      return null;
+    }
+  }
 }

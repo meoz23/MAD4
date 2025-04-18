@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'chat_screen.dart';
 
 class BoardListScreen extends StatelessWidget {
+  const BoardListScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'home_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
 }
@@ -20,17 +22,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (email.isNotEmpty && password.isNotEmpty) {
       User? user = await _authService.register(email, password);
       
-      if (user != null) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomeScreen()),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Registration failed!"),
-        ));
-      }
-    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomeScreen()),
+      );
+        } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text("Please fill in both fields!"),
       ));

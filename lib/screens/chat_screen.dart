@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 class ChatScreen extends StatefulWidget {
   final String boardName;
 
-  ChatScreen({required this.boardName});
+  const ChatScreen({super.key, required this.boardName});
 
   @override
   _ChatScreenState createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  TextEditingController _messageController = TextEditingController();
+  final TextEditingController _messageController = TextEditingController();
 
   void _sendMessage() {
     if (_messageController.text.isNotEmpty) {
