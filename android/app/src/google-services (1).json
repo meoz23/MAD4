@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "776422398981",
+    "project_id": "mad4-e3503",
+    "storage_bucket": "mad4-e3503.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:776422398981:android:06d269b4d271227f82106c",
+        "android_client_info": {
+          "package_name": "com.michelle.mad4app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDocAHIDIcHlombaXSx0p4XYmSh3z2vgbE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
