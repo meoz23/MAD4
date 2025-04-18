@@ -9,7 +9,7 @@ class SettingsScreen extends StatelessWidget {
     await FirebaseAuth.instance.signOut();
     if (context.mounted) {
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      MaterialPageRoute(builder: (context) => LoginScreen()),
         (route) => false,
       );
     }

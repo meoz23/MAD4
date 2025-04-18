@@ -1,114 +1,66 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import 'login_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'home_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
-
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  _RegisterScreenState createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final AuthService _auth = AuthService();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
 
-  final _firstName = TextEditingController();
-  final _lastName = TextEditingController();
-  final _email = TextEditingController();
-  final _password = TextEditingController();
-  String _role = 'user';
+  void _register() async {
+    String email = _emailController.text;
+    String password = _passwordController.text;
 
-  String? _error;
-
-  @override
-  void dispose() {
-    _firstName.dispose();
-    _lastName.dispose();
-    _email.dispose();
-    _password.dispose();
-    super.dispose();
-  }
-
-  Future<void> _register() async {
-    if (_formKey.currentState!.validate()) {
-      final message = await _auth.register(
-        firstName: _firstName.text,
-        lastName: _lastName.text,
-        email: _email.text.trim(),
-        password: _password.text,
-        role: _role,
-      );
-      if (message == null) {
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (_) => const HomeScreen()));
+    if (email.isNotEmpty && password.isNotEmpty) {
+      User? user = await _authService.register(email, password);
+      
+      if (user != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomeScreen()),
+        );
       } else {
-        setState(() => _error = message);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Registration failed!"),
+        ));
       }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Please fill in both fields!"),
+      ));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Register')),
+      appBar: AppBar(title: Text("Register")),
       body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _firstName,
-                decoration: const InputDecoration(labelText: 'First Name'),
-                validator: (val) => val!.isEmpty ? 'Enter first name' : null,
-              ),
-              TextFormField(
-                controller: _lastName,
-                decoration: const InputDecoration(labelText: 'Last Name'),
-                validator: (val) => val!.isEmpty ? 'Enter last name' : null,
-              ),
-              TextFormField(
-                controller: _email,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator: (val) => val!.isEmpty ? 'Enter email' : null,
-              ),
-              TextFormField(
-                controller: _password,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                validator: (val) =>
-                    val!.length < 6 ? 'Minimum 6 characters' : null,
-              ),
-              DropdownButtonFormField<String>(
-                value: _role,
-                items: const [
-                  DropdownMenuItem(value: 'user', child: Text('User')),
-                  DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                ],
-                onChanged: (val) => setState(() => _role = val!),
-                decoration: const InputDecoration(labelText: 'Role'),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _register,
-                child: const Text('Register'),
-              ),
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(_error!, style: const TextStyle(color: Colors.red)),
-                ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pushReplacement(context,
-                      MaterialPageRoute(builder: (_) => const LoginScreen()));
-                },
-                child: const Text('Already have an account? Login'),
-              ),
-            ],
-          ),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextField(
+              controller: _emailController,
+              decoration: InputDecoration(labelText: "Email"),
+            ),
+            TextField(
+              controller: _passwordController,
+              obscureText: true,
+              decoration: InputDecoration(labelText: "Password"),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _register,
+              child: Text("Register"),
+            ),
+          ],
         ),
       ),
     );

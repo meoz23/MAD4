@@ -1,40 +1,28 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class ChatScreen extends StatefulWidget {
   final String boardName;
 
-  const ChatScreen({super.key, required this.boardName});
+  ChatScreen({required this.boardName});
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  _ChatScreenState createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController _messageController = TextEditingController();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  TextEditingController _messageController = TextEditingController();
 
-  Future<void> _sendMessage() async {
-    final user = _auth.currentUser;
-    if (user == null || _messageController.text.trim().isEmpty) return;
-
-    final userData =
-        await _firestore.collection('users').doc(user.uid).get();
-
-    await _firestore
-        .collection('boards')
-        .doc(widget.boardName)
-        .collection('messages')
-        .add({
-      'text': _messageController.text.trim(),
-      'createdAt': Timestamp.now(),
-      'userId': user.uid,
-      'username': userData['firstName'] ?? 'Anonymous',
-    });
-
-    _messageController.clear();
+  void _sendMessage() {
+    if (_messageController.text.isNotEmpty) {
+      FirebaseFirestore.instance.collection('boards').doc(widget.boardName).collection('messages').add({
+        'text': _messageController.text,
+        'createdAt': Timestamp.now(),
+        'username': 'John Doe',
+        'userId': 'uid123',
+      });
+      _messageController.clear();
+    }
   }
 
   @override
@@ -47,42 +35,36 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore
+              stream: FirebaseFirestore.instance
                   .collection('boards')
                   .doc(widget.boardName)
                   .collection('messages')
-                  .orderBy('createdAt', descending: true)
+                  .orderBy('createdAt')
                   .snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
                 }
 
-                final messages = snapshot.data!.docs;
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
 
+                var messages = snapshot.data!.docs;
                 return ListView.builder(
-                  reverse: true,
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final msg = messages[index];
+                    var message = messages[index];
                     return ListTile(
-                      title: Text(msg['username'] ?? 'Unknown'),
-                      subtitle: Text(msg['text']),
-                      trailing: Text(
-                        (msg['createdAt'] as Timestamp)
-                            .toDate()
-                            .toLocal()
-                            .toString()
-                            .substring(0, 16),
-                        style: const TextStyle(fontSize: 12),
-                      ),
+                      title: Text(message['username']),
+                      subtitle: Text(message['text']),
+                      trailing: Text(message['createdAt'].toDate().toString()),
                     );
                   },
                 );
               },
             ),
           ),
-          const Divider(height: 1),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
@@ -90,17 +72,16 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: TextField(
                     controller: _messageController,
-                    decoration:
-                        const InputDecoration(hintText: 'Type your message...'),
+                    decoration: InputDecoration(hintText: 'Type a message'),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.send),
+                  icon: Icon(Icons.send),
                   onPressed: _sendMessage,
-                )
+                ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
